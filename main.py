@@ -1,7 +1,6 @@
+import os, sys, random
 import pickle
 import face_recognition
-import os
-import sys
 import numpy as np
 
 # Обучение модели
@@ -22,24 +21,13 @@ def train_model():
 
             for (i, image) in enumerate(images):
                 image_path = os.path.join(person_path, image)
-
                 face_img = face_recognition.load_image_file(image_path)
                 face_encodings = face_recognition.face_encodings(face_img)
-
                 if len(face_encodings) > 0:
                     face_encoding = face_encodings[0]
 
-                    match_found = False
-                    for enc in known_encodings:
-                        if len(enc) > 0:
-                            distance = np.linalg.norm(face_encoding - enc)
-                            if distance <= tolerance:
-                                match_found = True
-                                break
-
-                    if not match_found:
-                        known_encodings.append(face_encoding)
-                        known_names.append(person)
+                    known_encodings.append(face_encoding)
+                    known_names.append(person)
 
     data = {
         "names": known_names,
@@ -50,6 +38,7 @@ def train_model():
         file.write(pickle.dumps(data))
 
     return "============================================================\n\n[INFO] File encodings.pkl successfully created"
+
 
 # Загрузка encoding, созданного на основе датасета
 def load_encodings(filename="encodings.pkl"):
@@ -62,26 +51,29 @@ def compare_faces(image_path, encodings, names):
     image = face_recognition.load_image_file(image_path)
     face_locations = face_recognition.face_locations(image)
     face_encodings = face_recognition.face_encodings(image, face_locations)
-
+    best_matches = {}
     for (i, face_encoding) in enumerate(face_encodings):
         distances = face_recognition.face_distance(encodings, face_encoding)
 
-        print(f"\nProcessing face:")
+        print(f"\n033[95mProcessing face:\033[0m")
         for j, distance in enumerate(distances):
             confidence = 1 - distance
-            print(f"  Person: {names[j]}, Result: {confidence:.4f}")
+            if names[j] not in best_matches or confidence > best_matches[names[j]]["confidence"]:
+                best_matches[names[j]] = {"confidence": confidence, "index": j}
+
+    best_confidence = max(best_matches.values(), key=lambda x: x["confidence"])["confidence"]
+    for name, result in best_matches.items():
+        label = "\033[92m <<< Best >>> \033[0m" if result["confidence"] == best_confidence else ""
+        print(f"\033[94m  Person:\033[0m {name} : \033[96mResult: {result['confidence']:.4f}\033[0m {label}")
 
 def main():
     print(train_model())
-
     names, encodings = load_encodings()
-
     images_folder = "images"
     for image_filename in os.listdir(images_folder):
         image_path = os.path.join(images_folder, image_filename)
-        print(f"\n============================================================\n\nProcessing image: {image_path}")
+        print(f"\n============================================================\n\n\033[95mProcessing image:\033[0m {image_path}")
         compare_faces(image_path, encodings, names)
 
 if __name__ == '__main__':
-    tolerance = 0.75
     main()
