@@ -6,7 +6,7 @@ import numpy as np
 # Обучение модели
 def train_model():
     if not os.path.exists("dataset"):
-        print("[ERROR] there is no directory 'dataset'")
+        print("There is no directory 'dataset'")
         sys.exit()
 
     known_encodings = []
@@ -37,7 +37,7 @@ def train_model():
     with open('encodings.pkl', 'wb') as file:
         file.write(pickle.dumps(data))
 
-    return "============================================================\n\n[INFO] File encodings.pkl successfully created"
+    return "============================================================\n\nFile encodings.pkl successfully created"
 
 
 # Загрузка encoding, созданного на основе датасета
@@ -55,16 +55,19 @@ def compare_faces(image_path, encodings, names):
     for (i, face_encoding) in enumerate(face_encodings):
         distances = face_recognition.face_distance(encodings, face_encoding)
 
-        print(f"\n033[95mProcessing face:\033[0m")
+        print(f"\n\033[95mProcessing face:\033[0m")
         for j, distance in enumerate(distances):
             confidence = 1 - distance
             if names[j] not in best_matches or confidence > best_matches[names[j]]["confidence"]:
                 best_matches[names[j]] = {"confidence": confidence, "index": j}
 
-    best_confidence = max(best_matches.values(), key=lambda x: x["confidence"])["confidence"]
+    best_confidence = max((match["confidence"] for match in best_matches.values()))
     for name, result in best_matches.items():
-        label = "\033[92m <<< Best >>> \033[0m" if result["confidence"] == best_confidence else ""
-        print(f"\033[94m  Person:\033[0m {name} : \033[96mResult: {result['confidence']:.4f}\033[0m {label}")
+        label = ""
+        if result["confidence"] == best_confidence and result['confidence'] > 0.8:
+            label = "\033[92m <<< Best >>> \033[0m"
+        print(f"\033[94m\tPerson:\033[0m {name} \033[96m: coincidence: {result['confidence']:.4f}\033[0m {label}")
+
 
 def main():
     print(train_model())
